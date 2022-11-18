@@ -1,4 +1,6 @@
-﻿namespace AuthServer.Common.Services
+﻿using System.Text;
+
+namespace AuthServer.Common.Services
 {
     public static class SignService
     {
