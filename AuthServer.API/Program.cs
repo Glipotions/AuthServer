@@ -1,4 +1,5 @@
 using AuthServer.Common.Configurations;
+using AuthServer.Common.Extensions;
 using AuthServer.Common.Services;
 using AuthServer.Core.Configuration;
 using AuthServer.Core.Models;
@@ -9,6 +10,7 @@ using AuthServer.Data;
 using AuthServer.Data.Context;
 using AuthServer.Data.Repositories;
 using AuthServer.Service.Services;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -70,6 +72,15 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+
+builder.Services.AddControllers().AddFluentValidation(options =>
+{
+    options.RegisterValidatorsFromAssemblyContaining<Program>();
+});
+
+builder.Services.UseCustomValidationResponse();
+
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -77,7 +88,11 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+}else
+{
 }
+app.UseCustomException();
+
 
 app.UseHttpsRedirection();
 

@@ -8,7 +8,7 @@ namespace AuthServer.Common.Dtos
 {
     public class ErrorDto
     {
-        public List<String> Errors { get; private set; } = new List<string>();
+        public List<string> Errors { get; private set; } = new List<string>();
 
         public bool IsShow { get; private set; }
 
