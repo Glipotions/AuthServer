@@ -1,10 +1,12 @@
 ﻿using AuthServer.Common.Configurations;
+using AuthServer.Common.Services;
 using AuthServer.Core.Configuration;
 using AuthServer.Core.DTOs;
 using AuthServer.Core.Models;
 using AuthServer.Core.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -14,7 +16,7 @@ namespace AuthServer.Service.Services
     /// <summary>
     /// 5. Bölüm
     /// </summary>
-    internal class TokenService : ITokenService
+    public class TokenService : ITokenService
     {
         private readonly UserManager<UserApp> _userManager;
         private readonly CustomTokenOption _tokenOption;
@@ -36,7 +38,7 @@ namespace AuthServer.Service.Services
             return Convert.ToBase64String(numberByte);
         }
 
-        private IEnumerable<Claim>GetClaim(UserApp userApp, List<string> audiences)
+        private IEnumerable<Claim>GetClaims(UserApp userApp, List<string> audiences)
         {
             /// kullanıcıyla ilgili claimleri barındırır.
             var userList = new List<Claim>
@@ -66,12 +68,61 @@ namespace AuthServer.Service.Services
 
         public TokenDto CreateToken(UserApp userApp)
         {
-            throw new NotImplementedException();
-        }
+            var accessTokenExpiration = DateTime.Now.AddMinutes(_tokenOption.AccessTokenExpiration);
+            var refreshTokenExpiration = DateTime.Now.AddMinutes(_tokenOption.RefreshTokenExpiration);
+            var securityKey = SignService.GetSymmetricSecurityKey(_tokenOption.SecurityKey);
 
+            /// security algoritmaları seçilir. bir çok imzalama algoritması ver istediğimizi kullanabiliriz.
+            SigningCredentials signingCredentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256Signature);
+
+
+            JwtSecurityToken jwtSecurityToken = new JwtSecurityToken(
+                issuer: _tokenOption.Issuer,
+                expires: accessTokenExpiration,
+                 notBefore: DateTime.Now,
+                 claims: GetClaims(userApp, _tokenOption.Audience),
+                 signingCredentials: signingCredentials);
+
+            var handler = new JwtSecurityTokenHandler();
+            /// handler token oluşturur.
+            var token = handler.WriteToken(jwtSecurityToken);
+
+            var tokenDto = new TokenDto
+            {
+                AccessToken = token,
+                RefreshToken = CreateRefreshToken(),
+                AccessTokenExpiration = accessTokenExpiration,
+                RefreshTokenExpiration = refreshTokenExpiration
+            };
+
+            return tokenDto;
+        }
         public ClientTokenDto CreateTokenByClient(Client client)
         {
-            throw new NotImplementedException();
+            var accessTokenExpiration = DateTime.Now.AddMinutes(_tokenOption.AccessTokenExpiration);
+
+            var securityKey = SignService.GetSymmetricSecurityKey(_tokenOption.SecurityKey);
+
+            SigningCredentials signingCredentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256Signature);
+
+            JwtSecurityToken jwtSecurityToken = new JwtSecurityToken(
+                issuer: _tokenOption.Issuer,
+                expires: accessTokenExpiration,
+                 notBefore: DateTime.Now,
+                 claims: GetClaimsByClient(client),
+                 signingCredentials: signingCredentials);
+
+            var handler = new JwtSecurityTokenHandler();
+
+            var token = handler.WriteToken(jwtSecurityToken);
+
+            var tokenDto = new ClientTokenDto
+            {
+                AccessToken = token,
+                AccessTokenExpiration = accessTokenExpiration,
+            };
+
+            return tokenDto;
         }
     }
 }

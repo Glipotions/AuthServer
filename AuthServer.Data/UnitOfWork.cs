@@ -1,4 +1,5 @@
 ﻿using AuthServer.Core.UnitOfWork;
+using AuthServer.Data.Context;
 using Microsoft.EntityFrameworkCore;
 
 namespace AuthServer.Data
